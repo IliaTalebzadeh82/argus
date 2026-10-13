@@ -1,7 +1,7 @@
 # Local infrastructure (Phase 00 / Checkpoint 02)
 
-`compose.yaml` runs three development dependencies. It contains no application
-services or Argus domain data. Run `make infra-up`, `make infra-ps`, and
+`compose.yaml` runs three development dependencies beside two liveness-only
+application services. It contains no Argus domain data. Run `make infra-up`, `make infra-ps`, and
 `make infra-check`; stop with `make infra-down`.
 
 ## State roles

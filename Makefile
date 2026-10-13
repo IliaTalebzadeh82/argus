@@ -1,4 +1,4 @@
-.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check
+.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check decision-api investigator-api
 
 setup sync:
 	uv sync --locked
@@ -11,6 +11,12 @@ test:
 	uv run --locked pytest
 
 check: lint test
+
+decision-api:
+	uv run --locked python -m argus.apps.decision_api.main
+
+investigator-api:
+	uv run --locked python -m argus.apps.investigator_api.main
 
 infra-up:
 	docker compose up -d

@@ -5,9 +5,9 @@ human investigation support. Deterministic rules and predictive ML may take
 part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
-**Current status:** Phase 0 / Checkpoint 02 local infrastructure. This
-repository contains Python tooling, an importable package, and a local
-PostgreSQL/Redis/Kafka Compose stack; no application service exists yet. See
+**Current status:** Phase 0 / Checkpoint 03 application service skeletons. This
+repository contains two liveness-only APIs and a local
+PostgreSQL/Redis/Kafka Compose stack. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
@@ -23,19 +23,27 @@ make test   # pytest
 make check  # lint and test
 ```
 
-`make sync` is an alias for `make setup`. The project has no runtime
-dependencies. Python tooling is pinned through `uv.lock`.
+`make sync` is an alias for `make setup`. Dependencies are locked in `uv.lock`.
+
+Run one API on the host in its own terminal with `make decision-api` or
+`make investigator-api`. They listen on `127.0.0.1:8001` and
+`127.0.0.1:8002` respectively. Set `ARGUS_HOST`, `ARGUS_PORT`, or
+`ARGUS_LOG_LEVEL` to override a process default.
 
 ## Local infrastructure
 
 Install Docker with the Compose plugin, then run:
 
 ```sh
-make infra-up     # start PostgreSQL, Redis, and Kafka
+make infra-up     # start PostgreSQL, Redis, Kafka, and both APIs
 make infra-ps     # show container health
 make infra-check  # query all three dependencies
 make infra-down   # stop, retaining PostgreSQL and Kafka volumes
 ```
+
+The APIs expose `/health/live` on ports 8001 and 8002. See
+[application boundaries](docs/architecture/application-boundaries.md) for
+their responsibilities and current dependency graph.
 
 The PostgreSQL default password is `argus_dev_only`, for disposable local
 development only. Copy `.env.example` to `.env` to override it before first

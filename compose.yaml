@@ -63,6 +63,42 @@ services:
     mem_limit: 2g
     cpus: 2
 
+  decision-api:
+    build: .
+    command: ["python", "-m", "argus.apps.decision_api.main"]
+    environment:
+      ARGUS_HOST: 0.0.0.0
+      ARGUS_PORT: 8001
+      ARGUS_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/live', timeout=2).close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 512m
+    cpus: 0.5
+
+  investigator-api:
+    build: .
+    command: ["python", "-m", "argus.apps.investigator_api.main"]
+    environment:
+      ARGUS_HOST: 0.0.0.0
+      ARGUS_PORT: 8002
+      ARGUS_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/live', timeout=2).close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 512m
+    cpus: 0.5
+
 volumes:
   postgres_data:
   kafka_data:

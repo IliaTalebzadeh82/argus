@@ -1,0 +1,1 @@
+"""Executable Argus application boundaries."""
