@@ -5,9 +5,10 @@ human investigation support. Deterministic rules and predictive ML may take
 part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
-**Current status:** Phase 0 / Checkpoint 03 application service skeletons. This
-repository contains two liveness-only APIs and a local
-PostgreSQL/Redis/Kafka Compose stack. See
+**Current status:** Phase 0 complete — foundation and architecture established.
+Phase 1 core fraud domain is next. This repository currently contains two
+liveness-only APIs, a base event contract, and a local PostgreSQL/Redis/Kafka
+Compose stack. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
