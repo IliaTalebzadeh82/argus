@@ -15,3 +15,6 @@ dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Local Compose overrides and credentials
+.env
