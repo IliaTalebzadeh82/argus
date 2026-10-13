@@ -14,12 +14,12 @@ Two states would collapse unavailable evidence into a false fraud condition. Mis
 
 ## Identity and evidence
 
-`(rule_id, rule_version)` identifies deterministic rule behavior for future reproducibility. A breaking change to a published rule definition requires a version increase; there is no registry or historical loader yet. Matched evaluations connect a machine-readable reason code to the rule identity and the exact immutable `RiskSignal` used, including its code, source, value, and observation time. A valid non-match also retains the examined signal. No natural-language evidence is authoritative.
+`(rule_id, rule_version)` identifies implementation semantics, not the full deployed configuration. A breaking change to a published rule definition requires a rule-version increase. Thresholds, expected sources, membership, and other behavior-affecting configuration belong to a separate `(rule_set_id, rule_set_version)` identity; changing configuration requires a rule-set version bump even when the rule version stays fixed. There is no registry or historical loader yet. Matched evaluations connect a machine-readable reason code to the rule identity and the exact immutable `RiskSignal` used, including its code, source, value, and observation time. A valid non-match also retains the examined signal. No natural-language evidence is authoritative.
 
 Each rule selects by both signal code and logical source. Zero matches means missing, and multiple exact matches mean ambiguous; neither case silently selects a signal. Integer-count rules accept only actual integers, excluding booleans, floats, and strings.
 
 ## Determinism and boundary
 
-Threshold, source, and version are explicit rule configuration. Rules read only supplied context, perform no I/O or clock reads, and generate no IDs. The engine evaluates every registered rule in registration order and returns an immutable tuple of evaluations.
+Threshold and source are explicit rule configuration. Rules read only supplied context, perform no I/O or clock reads, and generate no IDs. The engine rejects empty rule sets and evaluates every registered rule in registration order. It returns an immutable `RuleSetEvaluation` with the rule-set identity/version, transaction subject ID, and ordered tuple of evaluations.
 
-CP02 has no final policy, persistence, API endpoint, Kafka, or ML. It also has no feature computation: callers supply the already-computed signals.
+The rules have no persistence, API endpoint, Kafka, ML, or feature computation: callers supply the already-computed signals. Policy composition is described in `policy-engine.md`.

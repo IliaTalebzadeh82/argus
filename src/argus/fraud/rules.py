@@ -73,6 +73,34 @@ class RuleEvaluation:
             raise ValueError("indeterminate evaluation requires only a diagnostic")
 
 
+@dataclass(frozen=True)
+class RuleSetEvaluation:
+    rule_set_id: str
+    rule_set_version: int
+    subject_id: str
+    evaluations: tuple[RuleEvaluation, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.rule_set_id, str) or not fullmatch(
+            r"[a-z][a-z0-9_]*", self.rule_set_id
+        ):
+            raise ValueError("rule_set_id must be a machine-readable code")
+        if type(self.rule_set_version) is not int or self.rule_set_version <= 0:
+            raise ValueError("rule_set_version must be a positive integer")
+        if not isinstance(self.subject_id, str) or not self.subject_id.strip():
+            raise ValueError("subject_id must be non-empty")
+        if not isinstance(self.evaluations, tuple) or not self.evaluations:
+            raise ValueError("evaluations must be a non-empty tuple")
+        identities: set[tuple[str, int]] = set()
+        for evaluation in self.evaluations:
+            if not isinstance(evaluation, RuleEvaluation):
+                raise ValueError("evaluations must contain RuleEvaluations")
+            identity = (evaluation.rule_id, evaluation.rule_version)
+            if identity in identities:
+                raise ValueError(f"duplicate rule identity: {identity}")
+            identities.add(identity)
+
+
 class Rule(Protocol):
     rule_id: str
     rule_version: int
@@ -168,9 +196,19 @@ class FailedPaymentVelocityRule(_IntegerCountRule):
 @dataclass(frozen=True)
 class RuleEngine:
     rules: tuple[Rule, ...]
+    rule_set_id: str
+    rule_set_version: int
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "rules", tuple(self.rules))
+        if not isinstance(self.rule_set_id, str) or not fullmatch(
+            r"[a-z][a-z0-9_]*", self.rule_set_id
+        ):
+            raise ValueError("rule_set_id must be a machine-readable code")
+        if type(self.rule_set_version) is not int or self.rule_set_version <= 0:
+            raise ValueError("rule_set_version must be a positive integer")
+        if not self.rules:
+            raise ValueError("rule set must contain at least one rule")
         identities: set[tuple[str, int]] = set()
         for rule in self.rules:
             if not isinstance(rule.rule_id, str) or not fullmatch(
@@ -184,5 +222,17 @@ class RuleEngine:
                 raise ValueError(f"duplicate rule identity: {identity}")
             identities.add(identity)
 
-    def evaluate(self, context: DecisionContext) -> tuple[RuleEvaluation, ...]:
-        return tuple(rule.evaluate(context) for rule in self.rules)
+    def evaluate(self, context: DecisionContext) -> RuleSetEvaluation:
+        evaluations = tuple(rule.evaluate(context) for rule in self.rules)
+        for rule, evaluation in zip(self.rules, evaluations, strict=True):
+            if (rule.rule_id, rule.rule_version) != (
+                evaluation.rule_id,
+                evaluation.rule_version,
+            ):
+                raise ValueError("rule evaluation identity does not match registration")
+        return RuleSetEvaluation(
+            rule_set_id=self.rule_set_id,
+            rule_set_version=self.rule_set_version,
+            subject_id=context.transaction.transaction_id,
+            evaluations=evaluations,
+        )

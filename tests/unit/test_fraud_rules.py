@@ -195,21 +195,26 @@ def test_engine_evaluates_all_in_order_preserving_conflicts_and_is_repeatable() 
         SharedDeviceAccountsRule(threshold=5, source=SOURCE),
         FailedPaymentVelocityRule(threshold=5, source=SOURCE),
     )
-    engine = RuleEngine(rules)
+    engine = RuleEngine(rules, "core_fraud", 1)
     facts = context(
         signal("payments_10m", 5),
         signal("accounts_on_device", 6),
         signal("failed_payments_1h", 4),
     )
     results = engine.evaluate(facts)
-    assert isinstance(results, tuple)
-    assert [item.rule_id for item in results] == [rule.rule_id for rule in rules]
-    assert [item.status for item in results] == [
+    assert results.rule_set_id == "core_fraud"
+    assert results.rule_set_version == 1
+    assert results.subject_id == "txn-1"
+    assert isinstance(results.evaluations, tuple)
+    assert [item.rule_id for item in results.evaluations] == [
+        rule.rule_id for rule in rules
+    ]
+    assert [item.status for item in results.evaluations] == [
         RuleEvaluationStatus.MATCHED,
         RuleEvaluationStatus.MATCHED,
         RuleEvaluationStatus.NOT_MATCHED,
     ]
-    assert [item.recommended_action for item in results] == [
+    assert [item.recommended_action for item in results.evaluations] == [
         DecisionAction.CHALLENGE,
         DecisionAction.REVIEW,
         None,
@@ -220,5 +225,9 @@ def test_engine_evaluates_all_in_order_preserving_conflicts_and_is_repeatable() 
 def test_engine_rejects_duplicate_rule_identity_but_allows_other_version() -> None:
     rule = PaymentVelocityRule(threshold=5, source=SOURCE)
     with pytest.raises(ValueError, match="duplicate rule identity"):
-        RuleEngine((rule, PaymentVelocityRule(threshold=10, source=SOURCE)))
-    RuleEngine((rule, PaymentVelocityRule(threshold=10, source=SOURCE, rule_version=2)))
+        RuleEngine((rule, PaymentVelocityRule(threshold=10, source=SOURCE)), "core", 1)
+    RuleEngine(
+        (rule, PaymentVelocityRule(threshold=10, source=SOURCE, rule_version=2)),
+        "core",
+        1,
+    )

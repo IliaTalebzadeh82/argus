@@ -16,6 +16,12 @@ from argus.domain import (
 )
 
 NOW = datetime(2026, 10, 13, 12, tzinfo=UTC)
+DECISION_PROVENANCE = {
+    "policy_id": "conservative_fraud",
+    "policy_version": 1,
+    "rule_set_id": "core_fraud",
+    "rule_set_version": 1,
+}
 
 
 def user(user_id: str = "user-1") -> UserAccount:
@@ -98,6 +104,7 @@ def test_money_rejects_invalid_input(data: dict[str, object]) -> None:
                 "subject_id": "txn-1",
                 "action": "ALLOW",
                 "reason_codes": ["CLEAR"],
+                **DECISION_PROVENANCE,
             },
         ),
     ],
@@ -162,6 +169,7 @@ def test_decision_action_is_exactly_four_outcomes() -> None:
             action="DENY",
             decided_at=NOW,
             reason_codes=("CLEAR",),
+            **DECISION_PROVENANCE,
         )
 
 
@@ -172,6 +180,7 @@ def test_decision_is_immutable_and_has_reasons() -> None:
         action="ALLOW",
         decided_at=NOW,
         reason_codes=("CLEAR",),
+        **DECISION_PROVENANCE,
     )
     with pytest.raises(ValidationError):
         decision.action = DecisionAction.BLOCK
@@ -182,6 +191,7 @@ def test_decision_is_immutable_and_has_reasons() -> None:
             action="ALLOW",
             decided_at=NOW,
             reason_codes=(),
+            **DECISION_PROVENANCE,
         )
     with pytest.raises(ValidationError):
         Decision(
@@ -190,6 +200,7 @@ def test_decision_is_immutable_and_has_reasons() -> None:
             action="ALLOW",
             decided_at=NOW,
             reason_codes=("human prose",),
+            **DECISION_PROVENANCE,
         )
 
 

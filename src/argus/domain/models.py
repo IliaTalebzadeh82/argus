@@ -44,6 +44,7 @@ SignalCode = Annotated[
 ReasonCode = Annotated[
     str, StringConstraints(strict=True, pattern=r"^[A-Z][A-Z0-9_]*$")
 ]
+VersionedCode = SignalCode
 
 
 class Snapshot(BaseModel):
@@ -113,6 +114,10 @@ class Decision(Snapshot):
     action: DecisionAction
     decided_at: Timestamp
     reason_codes: tuple[ReasonCode, ...] = Field(min_length=1)
+    policy_id: VersionedCode
+    policy_version: StrictInt = Field(gt=0)
+    rule_set_id: VersionedCode
+    rule_set_version: StrictInt = Field(gt=0)
 
 
 class DecisionContext(Snapshot):
