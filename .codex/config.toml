@@ -1,0 +1,19 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Project defaults: enough autonomy for normal development, bounded to the workspace.
+# Do not pin a model here; use the current Codex model available to the user's account.
+model_reasoning_effort = "medium"
+plan_mode_reasoning_effort = "high"
+
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+
+# Keep multi-agent work off by default to reduce usage/context overhead.
+# Enable it explicitly for a checkpoint only when parallel independent work clearly helps.
+[agents]
+enabled = false
+
+[sandbox_workspace_write]
+# Required for dependency installation, GitHub push, image pulls, etc.
+network_access = true
