@@ -34,4 +34,4 @@ The projector retains full validated logical event history and calculates tempor
 
 ## Deferred distributed decisions
 
-Kafka topic design, partition keys, consumer groups, offset commits, Redis key schema, atomic Redis updates, dedup TTL, watermarks, late-event policy, DLQ, and retry policy remain deferred. The reference accepts valid out-of-order events without a lateness cutoff. No Decision API integration is part of this checkpoint.
+The Redis projection key schema, atomic operations, and lifecycle are documented in [redis-feature-projection.md](redis-feature-projection.md). Kafka topic design, partition keys, consumer groups, offset commits, dedup TTL, watermarks, late-event policy, DLQ, and retry policy remain deferred. The reference accepts valid out-of-order events without a lateness cutoff. No Decision API integration is part of this checkpoint.

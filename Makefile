@@ -1,4 +1,4 @@
-.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration decision-api investigator-api
+.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration test-redis-integration decision-api investigator-api
 
 setup sync:
 	uv sync --locked
@@ -41,3 +41,8 @@ db-current:
 
 test-integration:
 	uv run --locked pytest tests/integration
+
+# Requires an explicit host-side ARGUS_REDIS_URL.
+test-redis-integration:
+	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
+	uv run --locked pytest tests/integration/test_redis_feature_projection.py

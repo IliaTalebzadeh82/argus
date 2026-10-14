@@ -1,4 +1,4 @@
-# Local infrastructure (Phase 00 / Checkpoint 02)
+# Local infrastructure
 
 `compose.yaml` runs three development dependencies beside two
 application services. Decision API depends on PostgreSQL and checks readiness
@@ -10,7 +10,7 @@ against its decision schema; Investigator API remains liveness-only. Run `make i
 | Service | Intended role | Local persistence |
 |---|---|---|
 | PostgreSQL | Authoritative Phase-1 transactional and decision audit state | `postgres_data` named volume |
-| Redis | Future low-latency derived state; rebuildable from authoritative sources | No named volume; snapshots and AOF disabled |
+| Redis | Argus online feature projection; derived and rebuildable | No named volume; snapshots and AOF disabled |
 | Kafka | Event transport and replay/integration boundary, not the transactional source of truth | `kafka_data` named volume |
 
 Kafka is a single process with both broker and KRaft controller roles. The
@@ -66,6 +66,11 @@ depends on these services:
 The Decision API service commits the audit and idempotency claim together.
 It does not retry writes inside a request.
 
+The Redis feature projection is an application capability but has no running
+worker yet. Its state is non-authoritative; [redis-feature-projection.md](redis-feature-projection.md)
+describes its lifecycle. Redis loss makes features unavailable until replay and
+explicit readiness. Decision API still depends only on PostgreSQL.
+
 ## Persistence and resource limits
 
 `docker compose down` stops and removes containers and the Compose network but
@@ -75,5 +80,5 @@ and irreversibly deletes their local data. The Redis image may create an
 anonymous `/data` volume, but snapshots and AOF are disabled, so Redis state is
 intentionally lost when its container is recreated. All three containers have
 memory and CPU limits: PostgreSQL 2 GiB / 2 CPUs, Redis 512 MiB / 1 CPU, and
-Kafka 2 GiB / 2 CPUs. Redis also has a 384 MiB key-memory limit with eviction;
+Kafka 2 GiB / 2 CPUs. Redis also has a 384 MiB key-memory limit with `noeviction`;
 Kafka's JVM heap is capped at 1 GiB.

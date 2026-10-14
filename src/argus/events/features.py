@@ -1,5 +1,6 @@
 """Exact in-memory event-time reference for the current fraud features."""
 
+import json
 from datetime import timedelta
 from enum import StrEnum
 from uuid import UUID
@@ -35,16 +36,26 @@ class EventIdentityConflict(ValueError):
     """One event ID was assigned to two different recorded facts."""
 
 
+def canonical_event_identity(event: EventEnvelope[FraudPayload]) -> str:
+    """Stable JSON for the complete validated logical event."""
+    return json.dumps(
+        event.model_dump(mode="json", serialize_as_any=True),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
 class ReferenceFeatureProjector:
     """Retain full logical history; queries derive views at explicit event time."""
 
     def __init__(self) -> None:
         self._events: dict[UUID, EventEnvelope[FraudPayload]] = {}
-        self._identities: dict[UUID, dict[str, object]] = {}
+        self._identities: dict[UUID, str] = {}
 
     def apply(self, event: EventEnvelope[FraudPayload]) -> ApplyResult:
         validate_fraud_event(event)
-        identity = event.model_dump(mode="json", serialize_as_any=True)
+        identity = canonical_event_identity(event)
         previous = self._identities.get(event.event_id)
         if previous is not None:
             if previous != identity:
