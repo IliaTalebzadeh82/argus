@@ -5,9 +5,10 @@ human investigation support. Deterministic rules and predictive ML may take
 part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
-**Current status:** Phase 1 deterministic domain, rules, policy, and PostgreSQL
-decision audit persistence, and the synchronous Decision API are implemented.
-The Investigator API remains liveness-only. See
+**Current status:** Phase 1 complete — deterministic fraud decisioning,
+authoritative PostgreSQL audit persistence, and an idempotent Decision API are
+implemented. Phase 2 event-driven feature processing is next. The Investigator
+API remains liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
