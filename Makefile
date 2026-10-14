@@ -1,4 +1,4 @@
-.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration test-redis-integration test-kafka-integration kafka-init feature-worker decision-api investigator-api
+.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration test-redis-integration test-kafka-integration test-phase02-failures kafka-init feature-lag feature-worker decision-api investigator-api
 
 setup sync:
 	uv sync --locked
@@ -21,6 +21,10 @@ investigator-api:
 kafka-init:
 	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
 	uv run --locked python -m argus.events.kafka_admin
+
+feature-lag:
+	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
+	uv run --locked python -m argus.events.kafka_lag
 
 feature-worker:
 	uv run --locked python -m argus.workers.feature_worker
@@ -58,3 +62,9 @@ test-kafka-integration:
 	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
 	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
 	uv run --locked pytest tests/integration/test_kafka_feature_worker.py
+
+test-phase02-failures:
+	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
+	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
+	@test -n "$(ARGUS_DATABASE_URL)" || (echo "ARGUS_DATABASE_URL is required" >&2; exit 1)
+	uv run --locked pytest tests/integration/test_phase02_failure_semantics.py

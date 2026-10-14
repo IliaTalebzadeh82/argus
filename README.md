@@ -80,6 +80,8 @@ export ARGUS_REDIS_URL=redis://localhost:6379/0
 make kafka-init               # create/verify the fraud topic
 make feature-worker           # host-side Kafka -> Redis worker
 make test-kafka-integration   # focused real Kafka + Redis checks
+make feature-lag              # operator-only live group offset/backlog snapshot
+make test-phase02-failures    # real failure campaign; also set ARGUS_DATABASE_URL
 ```
 
 Compose also runs `kafka-init` and `feature-worker`. See
