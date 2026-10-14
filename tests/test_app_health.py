@@ -10,6 +10,7 @@ def test_decision_liveness(monkeypatch) -> None:
     monkeypatch.setenv(
         "ARGUS_DATABASE_URL", "postgresql+psycopg://argus:argus@localhost/argus"
     )
+    monkeypatch.setenv("ARGUS_REDIS_URL", "redis://localhost:6379/0")
     with TestClient(decision_app) as client:
         response = client.get("/health/live")
     assert response.status_code == 200

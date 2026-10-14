@@ -1,40 +1,42 @@
-# Phase 1 Decision API
+# Phase 2 Decision API
 
-`POST /v1/decisions/payment` accepts a `context` containing a user, transaction,
-selected payment attempt, ordered devices, and ordered caller-computed risk
-signals. The client cannot supply a final action, reason, or provenance. Invalid
-relationships and facts receive HTTP 422.
+`POST /v1/decisions/payment` accepts `facts`: `UserAccount`, `Transaction`,
+`PaymentAttempt`, supplied `devices`, and an explicit `observed_device_id` that
+must name a supplied device or be null. Caller signals, action, reasons, and
+rule/policy metadata are rejected. Argus queries Redis at
+`payment_attempt.attempted_at`, maps the READY snapshot to
+`redis_features_v1` risk signals, then applies the unchanged rules and policy.
+The rule-set configuration is version 2 because its evidence source changed;
+individual rule and policy versions remain 1.
 
-The request passes through the versioned Phase-1 `RuleEngine`, then the
-`ConservativeDecisionPolicy`, then one atomic PostgreSQL audit transaction.
-Demonstration thresholds, source, and rule membership live in
-`apps/decision_api/service.py`. Every change to them requires a rule-set version
-bump. The policy is the sole action-composition implementation. Missing or
-ambiguous rule evidence is `INDETERMINATE` and may produce a business `REVIEW`;
-it is not a database error.
+The feature `as_of` is the payment attempt's event time. `decided_at` is when
+Argus creates the judgment and may be later. Missing observed device omits
+`accounts_on_device`; its rule is indeterminate and policy may return REVIEW.
+A known zero from a READY projection is valid evidence. Redis failure,
+UNINITIALIZED, or REBUILDING prevents a new judgment with 503
+`FEATURES_UNAVAILABLE`.
 
-`Idempotency-Key` is an opaque HTTP request identity, separate from decision,
-transaction, and payment IDs. The validated context is serialized as canonical
-JSON and SHA-256 hashed. UTC timestamps and currency are normalized by the
-domain model; object keys are sorted while device and signal order is retained.
-PostgreSQL atomically claims the unique key and records the decision. A replay
-with the same fingerprint returns the stored decision with `replayed: true`.
-Different content for the same key returns HTTP 409 `IDEMPOTENCY_KEY_REUSED`.
-The database uniqueness constraint serializes concurrent claims, and a deferred
-foreign key enforces that a committed claim references a recorded decision.
-A failed audit write rolls the claim back. There are no automatic write retries.
+PostgreSQL is authoritative for decision history. The service claims the key
+and facts-only fingerprint in a PostgreSQL transaction before reading Redis.
+A committed same-key/same-facts replay returns the stored decision without
+Redis, including during an outage or after Redis values change. Changed facts
+return 409. A failed feature read rolls back the new claim. The transaction
+remains open during the read to serialize concurrent idempotency; Redis and
+PostgreSQL do not share a distributed transaction. Generated signals, including
+code, value, source, and observed time, are copied into `DecisionRecord` in
+PostgreSQL, so historical explanation does not depend on Redis retention.
 
-The service generates a UUID and UTC time at the application boundary through
-injectable providers and passes them into pure policy logic. HTTP success only
-follows transaction commit. Authoritative fact conflicts return HTTP 409
-`AUTHORITATIVE_FACT_CONFLICT`. PostgreSQL connection failure returns HTTP 503
-`DATABASE_UNAVAILABLE`; it never creates an ALLOW or other synthetic decision.
+`/health/live` tests only the process. `/health/ready` tests PostgreSQL decision
+schema, Redis connectivity, and projection lifecycle READY. READY means
+initialized and queryable; it does not prove zero Kafka consumer lag or arrival
+of all late events at the chosen `as_of`. The API does not inspect Kafka.
 
-`/health/live` checks only process responsiveness. `/health/ready` checks actual
-PostgreSQL connectivity and required decision schema columns. The SQLAlchemy
-engine is created during app startup with `pool_pre_ping` and disposed on
-shutdown. Migrations are an explicit deployment step; an unmigrated API may be
-live but not ready.
+```text
+Decision API -> PostgreSQL, Redis
+Feature Worker -> Kafka, Redis
+Investigator API -> none
+```
 
-Current dependencies: Decision API → PostgreSQL; Investigator API → none.
-Redis, Kafka, ML, and LLM do not participate in this decision path.
+The API constructs and closes its database engine and Redis client in lifespan.
+It requires `ARGUS_DATABASE_URL` and `ARGUS_REDIS_URL`; optional
+`ARGUS_FEATURE_NAMESPACE` defaults to the version-one production namespace.

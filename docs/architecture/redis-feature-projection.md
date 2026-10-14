@@ -6,13 +6,13 @@ Redis holds rebuildable online feature state, not transactional, audit, or event
 
 ```text
 Feature Worker -> Kafka, Redis
-Decision API -> PostgreSQL
+Decision API -> PostgreSQL, Redis
 Investigator API -> none
 ```
 
 The feature worker replays Kafka history into this projection and then consumes
 live fraud records. It uses the existing `begin_rebuild`, `apply`, and
-`mark_ready` lifecycle. There is no Decision API Redis connection. See
+`mark_ready` lifecycle. Decision API reads READY snapshots for new decisions; committed idempotent replays use PostgreSQL alone. See
 [kafka-feature-worker.md](kafka-feature-worker.md).
 
 ## Keys and exact event time

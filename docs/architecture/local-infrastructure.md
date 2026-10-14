@@ -1,8 +1,8 @@
 # Local infrastructure
 
 `compose.yaml` runs three development dependencies, two APIs, a one-shot
-`kafka-init` service, and a feature worker. Decision API depends on PostgreSQL
-and checks readiness against its decision schema; Investigator API remains liveness-only. Run `make infra-up`,
+`kafka-init` service, and a feature worker. Decision API depends on PostgreSQL and Redis
+and checks readiness against the decision schema and Redis READY lifecycle; Investigator API remains liveness-only. Run `make infra-up`,
 `make infra-ps`, and `make infra-check`; stop with `make infra-down`.
 
 ## State roles
@@ -72,7 +72,7 @@ fraud topic with `retention.ms=-1`, and broker auto-topic creation is disabled.
 Infinite retention supports exact replay at the cost of unbounded Kafka disk
 growth. The Redis projection is non-authoritative; [redis-feature-projection.md](redis-feature-projection.md)
 describes its lifecycle. Redis loss makes features unavailable until replay and
-explicit readiness. Decision API still depends only on PostgreSQL.
+explicit readiness. Decision API is live but unready during Redis loss/rebuild. New decisions return 503 FEATURES_UNAVAILABLE, while committed idempotent replays use PostgreSQL alone. Readiness does not prove zero Kafka lag or complete late event arrival.
 
 ## Persistence and resource limits
 

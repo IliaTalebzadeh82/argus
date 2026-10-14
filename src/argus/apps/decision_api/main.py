@@ -9,15 +9,25 @@ import uvicorn
 from fastapi import FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
+from redis.exceptions import RedisError
 from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError, InterfaceError, OperationalError
 
 from argus.apps.decision_api.service import (
     DecisionResult,
     DecisionService,
+    FeaturesUnavailable,
     IdempotencyKeyReused,
+    PaymentDecisionInput,
 )
-from argus.domain.models import Decision, DecisionContext
+from argus.domain.models import Decision
+from argus.features.redis_projection import (
+    NAMESPACE,
+    ProjectionState,
+    ProjectionStateError,
+    RedisFeatureProjector,
+    create_redis_client,
+)
 from argus.persistence import schema as s
 from argus.persistence.database import create_engine
 from argus.persistence.repository import PersistenceConflict
@@ -33,7 +43,7 @@ class Liveness(BaseModel):
 class PaymentDecisionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    context: DecisionContext
+    facts: PaymentDecisionInput
 
 
 class DecisionResponse(BaseModel):
@@ -56,12 +66,25 @@ async def lifespan(app: FastAPI):
     url = os.environ.get("ARGUS_DATABASE_URL")
     if not url:
         raise RuntimeError("ARGUS_DATABASE_URL is required for Decision API")
+    redis_url = os.environ.get("ARGUS_REDIS_URL")
+    if not redis_url:
+        raise RuntimeError("ARGUS_REDIS_URL is required for Decision API")
     engine = create_engine(url)
-    app.state.engine = engine
-    app.state.service = DecisionService(engine)
     try:
+        redis_client = create_redis_client(redis_url)
+    except Exception:
+        engine.dispose()
+        raise
+    try:
+        projection = RedisFeatureProjector(
+            redis_client, namespace=os.environ.get("ARGUS_FEATURE_NAMESPACE", NAMESPACE)
+        )
+        app.state.engine = engine
+        app.state.projection = projection
+        app.state.service = DecisionService(engine, projection)
         yield
     finally:
+        redis_client.close()
         engine.dispose()
 
 
@@ -99,6 +122,14 @@ def ready(request: Request):
         return error(
             "DATABASE_UNAVAILABLE", "PostgreSQL decision schema unavailable", 503
         )
+    try:
+        if request.app.state.projection.state() is not ProjectionState.READY:
+            return error("FEATURES_UNAVAILABLE", "Online features unavailable", 503)
+    except (RedisError, ProjectionStateError) as exc:
+        logger.warning(
+            "FEATURES_UNAVAILABLE readiness error_type=%s", type(exc).__name__
+        )
+        return error("FEATURES_UNAVAILABLE", "Online features unavailable", 503)
     return {"status": "ready", "service": "decision-api"}
 
 
@@ -115,8 +146,15 @@ def decide_payment(
     reference = key_reference(idempotency_key)
     try:
         result: DecisionResult = request.app.state.service.decide(
-            body.context, idempotency_key
+            body.facts, idempotency_key
         )
+    except FeaturesUnavailable as exc:
+        logger.warning(
+            "FEATURES_UNAVAILABLE key_ref=%s error_type=%s",
+            reference,
+            type(exc.__cause__).__name__,
+        )
+        return error("FEATURES_UNAVAILABLE", "Online features unavailable", 503)
     except IdempotencyKeyReused:
         logger.info("IDEMPOTENCY_KEY_REUSED key_ref=%s", reference)
         return error("IDEMPOTENCY_KEY_REUSED", "Key belongs to another request", 409)

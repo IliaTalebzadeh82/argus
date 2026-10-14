@@ -93,11 +93,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       ARGUS_HOST: 0.0.0.0
       ARGUS_PORT: 8001
       ARGUS_LOG_LEVEL: info
       ARGUS_DATABASE_URL: postgresql+psycopg://argus:${POSTGRES_PASSWORD:-argus_dev_only}@postgres:5432/argus
+      ARGUS_REDIS_URL: redis://redis:6379/0
     ports:
       - "127.0.0.1:8001:8001"
     healthcheck:

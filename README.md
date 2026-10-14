@@ -7,8 +7,7 @@ investigators and is never required for decision availability or correctness.
 
 **Current status:** Phase 1 complete — deterministic fraud decisioning,
 authoritative PostgreSQL audit persistence, and an idempotent Decision API are
-implemented. Phase 2 Kafka-to-Redis feature processing is available locally;
-Decision API feature integration is next. The Investigator API remains
+implemented. Phase 2 Kafka-to-Redis feature processing and Decision API online feature integration are available locally. The Investigator API remains
 liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
@@ -27,11 +26,11 @@ make check  # lint and test
 
 `make sync` is an alias for `make setup`. Dependencies are locked in `uv.lock`.
 
-Set `ARGUS_DATABASE_URL` for the Decision API before starting it on the host;
+Set `ARGUS_DATABASE_URL` and `ARGUS_REDIS_URL` for the Decision API before starting it on the host;
 the default local value is
 `postgresql+psycopg://argus:argus_dev_only@localhost:5432/argus`. Compose uses
 `postgresql+psycopg://argus:${POSTGRES_PASSWORD:-argus_dev_only}@postgres:5432/argus`.
-Run migrations explicitly with `make db-upgrade` before expecting readiness.
+Use `ARGUS_REDIS_URL=redis://localhost:6379/0` on the host. Run migrations explicitly with `make db-upgrade`; readiness also requires a READY Redis projection.
 
 Run one API on the host in its own terminal with `make decision-api` or
 `make investigator-api`. They listen on `127.0.0.1:8001` and
