@@ -68,3 +68,9 @@ test-phase02-failures:
 	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
 	@test -n "$(ARGUS_DATABASE_URL)" || (echo "ARGUS_DATABASE_URL is required" >&2; exit 1)
 	uv run --locked pytest tests/integration/test_phase02_failure_semantics.py
+
+# Requires explicit host-side Kafka and Redis endpoints.
+test-simulation-kafka:
+	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
+	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
+	uv run --locked pytest tests/integration/test_simulation_kafka_playback.py -q

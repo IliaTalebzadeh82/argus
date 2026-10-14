@@ -89,3 +89,12 @@ make test-phase02-failures    # real failure campaign; also set ARGUS_DATABASE_U
 Compose also runs `kafka-init` and `feature-worker`. See
 [Kafka feature worker](docs/architecture/kafka-feature-worker.md) for transport
 and replay semantics.
+
+### Phase 03 demo workload
+
+```bash
+uv run --locked python -m argus.simulation.cli export --spec configs/simulation/phase-03-demo.json --output /tmp/argus-phase03
+uv run --locked python -m argus.simulation.cli publish --spec configs/simulation/phase-03-demo.json --bootstrap-servers localhost:9092 --topic argus.fraud-events.v1 --unpaced
+```
+
+Export needs no services; publication needs Kafka. See [simulation adapters](docs/architecture/simulation-adapters.md).
