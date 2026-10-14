@@ -1,6 +1,7 @@
 """Redis-backed projection of the CP01 fraud feature semantics."""
 
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 
 from redis import Redis
 
@@ -89,6 +90,12 @@ class ProjectionStateError(RuntimeError):
     """An invalid projection lifecycle transition or state."""
 
 
+class ProjectionState(StrEnum):
+    UNINITIALIZED = "UNINITIALIZED"
+    REBUILDING = "REBUILDING"
+    READY = "READY"
+
+
 class RedisFeatureProjector:
     """A versioned, rebuildable Redis feature projection."""
 
@@ -109,6 +116,15 @@ class RedisFeatureProjector:
     @property
     def _identity_key(self) -> str:
         return f"{self.namespace}events"
+
+    def state(self) -> ProjectionState:
+        value = self.client.get(self._state_key)
+        if value is None:
+            return ProjectionState.UNINITIALIZED
+        try:
+            return ProjectionState(value)
+        except ValueError as exc:
+            raise ProjectionStateError(f"invalid projection state: {value}") from exc
 
     def begin_rebuild(self) -> None:
         if self.client.eval(_BEGIN, 1, self._state_key) != "REBUILDING":

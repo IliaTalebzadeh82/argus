@@ -5,12 +5,15 @@
 Redis holds rebuildable online feature state, not transactional, audit, or event authority. PostgreSQL remains authoritative for Phase-1 decisions. Current dependencies are:
 
 ```text
-Redis projection capability -> Redis
+Feature Worker -> Kafka, Redis
 Decision API -> PostgreSQL
 Investigator API -> none
 ```
 
-No feature worker is running yet. The caller explicitly supplies the Redis URL and invokes `begin_rebuild`, `apply`, `mark_ready`, and `features_for`. There is no Decision API Redis connection.
+The feature worker replays Kafka history into this projection and then consumes
+live fraud records. It uses the existing `begin_rebuild`, `apply`, and
+`mark_ready` lifecycle. There is no Decision API Redis connection. See
+[kafka-feature-worker.md](kafka-feature-worker.md).
 
 ## Keys and exact event time
 
@@ -36,6 +39,6 @@ Absent state is `UNINITIALIZED`: applying or querying fails. Only explicit `begi
 
 ## Failure and retention
 
-Redis snapshots and AOF remain disabled. After actual Redis memory loss, the state key disappears and queries fail as uninitialized until deterministic history is replayed and marked ready. Connection, out-of-memory, and script failures surface as Redis errors; they are not converted to success or zero features. A caller receiving a write error must treat completion as unknown and reconcile or redeliver the same event ID. Lua serializes execution but Redis does not roll back earlier script commands on a runtime error. Feature mutations use event IDs as sorted-set members, and device scores only move earlier, so identical redelivery is safe if a write fails before identity registration. Operational recovery and future replay policy remain separate work.
+Redis snapshots and AOF remain disabled. After actual Redis memory loss, the state key disappears and queries fail as uninitialized until Kafka history is replayed and marked ready. Connection, out-of-memory, and script failures surface as Redis errors; they are not converted to success or zero features. A caller receiving a write error must treat completion as unknown and redeliver the same event ID. Lua serializes execution but Redis does not roll back earlier script commands on a runtime error. Feature mutations use event IDs as sorted-set members, and device scores only move earlier, so identical redelivery is safe if a write fails before identity registration. Future bounded replay policy remains separate work.
 
 Local Redis uses `noeviction` with the existing 384 MiB key-memory limit: **explicit write failure is preferable to silent feature-key eviction**. No feature, identity, or dedup key has a TTL. This intentionally unbounded state has no watermark, lateness cutoff, or retention policy in CP02; bounded retention requires a later explicit design.

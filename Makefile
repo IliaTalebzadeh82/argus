@@ -1,4 +1,4 @@
-.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration test-redis-integration decision-api investigator-api
+.PHONY: setup sync lint test check infra-up infra-down infra-ps infra-check db-upgrade db-current test-integration test-redis-integration test-kafka-integration kafka-init feature-worker decision-api investigator-api
 
 setup sync:
 	uv sync --locked
@@ -17,6 +17,13 @@ decision-api:
 
 investigator-api:
 	uv run --locked python -m argus.apps.investigator_api.main
+
+kafka-init:
+	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
+	uv run --locked python -m argus.events.kafka_admin
+
+feature-worker:
+	uv run --locked python -m argus.workers.feature_worker
 
 infra-up:
 	docker compose up -d
@@ -46,3 +53,8 @@ test-integration:
 test-redis-integration:
 	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
 	uv run --locked pytest tests/integration/test_redis_feature_projection.py
+
+test-kafka-integration:
+	@test -n "$(ARGUS_KAFKA_BOOTSTRAP_SERVERS)" || (echo "ARGUS_KAFKA_BOOTSTRAP_SERVERS is required" >&2; exit 1)
+	@test -n "$(ARGUS_REDIS_URL)" || (echo "ARGUS_REDIS_URL is required" >&2; exit 1)
+	uv run --locked pytest tests/integration/test_kafka_feature_worker.py

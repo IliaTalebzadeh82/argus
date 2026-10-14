@@ -7,8 +7,9 @@ investigators and is never required for decision availability or correctness.
 
 **Current status:** Phase 1 complete — deterministic fraud decisioning,
 authoritative PostgreSQL audit persistence, and an idempotent Decision API are
-implemented. Phase 2 event-driven feature processing is next. The Investigator
-API remains liveness-only. See
+implemented. Phase 2 Kafka-to-Redis feature processing is available locally;
+Decision API feature integration is next. The Investigator API remains
+liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
@@ -42,7 +43,7 @@ Run one API on the host in its own terminal with `make decision-api` or
 Install Docker with the Compose plugin, then run:
 
 ```sh
-make infra-up     # start PostgreSQL, Redis, Kafka, and both APIs
+make infra-up     # start dependencies, topic init, feature worker, and APIs
 make infra-ps     # show container health
 make infra-check  # query all three dependencies
 make infra-down   # stop, retaining PostgreSQL and Kafka volumes
@@ -71,3 +72,17 @@ make infra-down
 
 `make check` runs pure and API tests without PostgreSQL. Use the local password
 shown above only with the disposable default Compose database.
+
+Phase-2 Kafka/Redis commands (use explicit host endpoints):
+
+```sh
+export ARGUS_KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+export ARGUS_REDIS_URL=redis://localhost:6379/0
+make kafka-init               # create/verify the fraud topic
+make feature-worker           # host-side Kafka -> Redis worker
+make test-kafka-integration   # focused real Kafka + Redis checks
+```
+
+Compose also runs `kafka-init` and `feature-worker`. See
+[Kafka feature worker](docs/architecture/kafka-feature-worker.md) for transport
+and replay semantics.
