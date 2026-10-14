@@ -40,3 +40,7 @@ Future consumers must account for at-least-once delivery. They will deduplicate
 by logical `event_id`, not by Kafka offset alone; no deduplication mechanism is
 implemented here. `subject_id` may inform future partition keys when ordering
 is subject-scoped, but this contract makes no partitioning decision.
+
+## Phase 2 fraud contracts
+
+The five version-one contracts, their payload IDs, subject meanings, and pure feature behavior are defined in [feature-pipeline-semantics.md](feature-pipeline-semantics.md). `argus.events.fraud.validate_fraud_event` is the explicit production fraud-event validation boundary: it checks that type, version, concrete payload model, and subject agree. The generic Phase-0 envelope remains transport-neutral and can still represent other typed event families. The reference projector validates at application and deduplicates by logical `event_id`; transport delivery does not define event identity.
