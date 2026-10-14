@@ -1,14 +1,15 @@
 # Local infrastructure (Phase 00 / Checkpoint 02)
 
 `compose.yaml` runs three development dependencies beside two liveness-only
-application services. It contains no Argus domain data. Run `make infra-up`, `make infra-ps`, and
-`make infra-check`; stop with `make infra-down`.
+application services. PostgreSQL now stores the Phase-1 Argus decision audit
+schema; the APIs still serve liveness only. Run `make infra-up`,
+`make infra-ps`, and `make infra-check`; stop with `make infra-down`.
 
 ## State roles
 
 | Service | Intended role | Local persistence |
 |---|---|---|
-| PostgreSQL | Future authoritative transactional and audit state | `postgres_data` named volume |
+| PostgreSQL | Authoritative Phase-1 transactional and decision audit state | `postgres_data` named volume |
 | Redis | Future low-latency derived state; rebuildable from authoritative sources | No named volume; snapshots and AOF disabled |
 | Kafka | Event transport and replay/integration boundary, not the transactional source of truth | `kafka_data` named volume |
 
@@ -55,8 +56,8 @@ depends on these services:
 | Redis | Derived values can be unavailable, missing, or stale. Define whether to recompute, bypass, or fail each operation; set freshness and retry limits. Redis loss must not silently become loss of authoritative truth. |
 | Kafka | Publishing/consuming can be delayed or unavailable. Define retry, replay, ordering, lag, and duplicate handling at each future boundary; assume at-least-once delivery rather than exactly-once consumers. Do not equate a healthy broker with completed downstream work. |
 
-No application fallback, retry policy, topic, or event schema is established
-by this checkpoint.
+The repository fails on PostgreSQL errors and leaves commit/rollback to its caller.
+HTTP failure policy, retry behavior, and idempotency await CP05.
 
 ## Persistence and resource limits
 

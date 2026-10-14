@@ -5,10 +5,9 @@ human investigation support. Deterministic rules and predictive ML may take
 part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
-**Current status:** Phase 0 complete — foundation and architecture established.
-Phase 1 core fraud domain is next. This repository currently contains two
-liveness-only APIs, a base event contract, and a local PostgreSQL/Redis/Kafka
-Compose stack. See
+**Current status:** Phase 1 deterministic domain, rules, policy, and PostgreSQL
+decision audit persistence are implemented. The two HTTP APIs remain
+liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
@@ -50,3 +49,17 @@ The PostgreSQL default password is `argus_dev_only`, for disposable local
 development only. Copy `.env.example` to `.env` to override it before first
 startup. See [local infrastructure](docs/architecture/local-infrastructure.md)
 for endpoints, state roles, and volume behavior.
+
+Phase-1 PostgreSQL audit work on the host:
+
+```sh
+export ARGUS_DATABASE_URL=postgresql+psycopg://argus:argus_dev_only@localhost:5432/argus
+make infra-up
+make db-upgrade
+make db-current
+make test-integration
+make infra-down
+```
+
+`make check` runs pure and API tests without PostgreSQL. Use the local password
+shown above only with the disposable default Compose database.
