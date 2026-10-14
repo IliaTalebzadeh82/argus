@@ -52,3 +52,6 @@ It does not capture runtime RNG state or counters and is not a resume snapshot.
 The kernel performs no filesystem, network, Kafka, Redis, PostgreSQL, or HTTP
 I/O. It includes no fraud behavior, ML, or LLM integration. Future export and
 publication belong in adapters outside the kernel.
+
+The Phase 03 / Checkpoint 02 [legitimate world](synthetic-legitimate-world.md)
+consumes these primitives without changing the kernel contract.
