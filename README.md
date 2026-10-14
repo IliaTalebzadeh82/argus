@@ -5,10 +5,12 @@ human investigation support. Deterministic rules and predictive ML may take
 part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
-**Current status:** Phase 1 complete — deterministic fraud decisioning,
-authoritative PostgreSQL audit persistence, and an idempotent Decision API are
-implemented. Phase 2 Kafka-to-Redis feature processing and Decision API online feature integration are available locally. The Investigator API remains
-liveness-only. See
+**Current status:** Phase 2 complete — typed fraud events flow through
+at-least-once Kafka processing into rebuildable Redis online features that
+feed the deterministic Decision API. Freshness is eventually consistent:
+Redis `READY` does not imply zero Kafka lag or event-time completeness.
+PostgreSQL remains authoritative for decisions and audit. Phase 3 is next.
+The Investigator API remains liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
