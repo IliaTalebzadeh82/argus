@@ -6,7 +6,10 @@ from argus.apps.decision_api.main import app as decision_app
 from argus.apps.investigator_api.main import app as investigator_app
 
 
-def test_decision_liveness() -> None:
+def test_decision_liveness(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "ARGUS_DATABASE_URL", "postgresql+psycopg://argus:argus@localhost/argus"
+    )
     with TestClient(decision_app) as client:
         response = client.get("/health/live")
     assert response.status_code == 200

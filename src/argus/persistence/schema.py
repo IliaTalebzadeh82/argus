@@ -87,6 +87,18 @@ decisions = Table(
         name="provenance_nonempty",
     ),
 )
+decision_idempotency = Table(
+    "decision_idempotency",
+    metadata,
+    Column("idempotency_key", String(255), primary_key=True),
+    Column("request_fingerprint", String(64), nullable=False),
+    Column(
+        "decision_id",
+        String,
+        ForeignKey("decisions.decision_id", deferrable=True, initially="DEFERRED"),
+        nullable=False,
+    ),
+)
 reasons = Table(
     "decision_reasons",
     metadata,

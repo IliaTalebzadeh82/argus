@@ -6,8 +6,8 @@ part in critical decisions. Generative AI runs asynchronously to help
 investigators and is never required for decision availability or correctness.
 
 **Current status:** Phase 1 deterministic domain, rules, policy, and PostgreSQL
-decision audit persistence are implemented. The two HTTP APIs remain
-liveness-only. See
+decision audit persistence, and the synchronous Decision API are implemented.
+The Investigator API remains liveness-only. See
 [`ARGUS_MASTER_REFERENCE.md`](ARGUS_MASTER_REFERENCE.md) for the architecture
 and phase plan.
 
@@ -25,6 +25,12 @@ make check  # lint and test
 
 `make sync` is an alias for `make setup`. Dependencies are locked in `uv.lock`.
 
+Set `ARGUS_DATABASE_URL` for the Decision API before starting it on the host;
+the default local value is
+`postgresql+psycopg://argus:argus_dev_only@localhost:5432/argus`. Compose uses
+`postgresql+psycopg://argus:${POSTGRES_PASSWORD:-argus_dev_only}@postgres:5432/argus`.
+Run migrations explicitly with `make db-upgrade` before expecting readiness.
+
 Run one API on the host in its own terminal with `make decision-api` or
 `make investigator-api`. They listen on `127.0.0.1:8001` and
 `127.0.0.1:8002` respectively. Set `ARGUS_HOST`, `ARGUS_PORT`, or
@@ -41,7 +47,8 @@ make infra-check  # query all three dependencies
 make infra-down   # stop, retaining PostgreSQL and Kafka volumes
 ```
 
-The APIs expose `/health/live` on ports 8001 and 8002. See
+Both APIs expose `/health/live`; Decision API also exposes `/health/ready`
+and `POST /v1/decisions/payment` on port 8001. See
 [application boundaries](docs/architecture/application-boundaries.md) for
 their responsibilities and current dependency graph.
 

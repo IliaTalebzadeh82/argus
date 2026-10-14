@@ -66,14 +66,18 @@ services:
   decision-api:
     build: .
     command: ["python", "-m", "argus.apps.decision_api.main"]
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       ARGUS_HOST: 0.0.0.0
       ARGUS_PORT: 8001
       ARGUS_LOG_LEVEL: info
+      ARGUS_DATABASE_URL: postgresql+psycopg://argus:${POSTGRES_PASSWORD:-argus_dev_only}@postgres:5432/argus
     ports:
       - "127.0.0.1:8001:8001"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/live', timeout=2).close()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=2).close()"]
       interval: 10s
       timeout: 5s
       retries: 5

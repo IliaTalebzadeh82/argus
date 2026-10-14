@@ -1,8 +1,8 @@
 # Local infrastructure (Phase 00 / Checkpoint 02)
 
-`compose.yaml` runs three development dependencies beside two liveness-only
-application services. PostgreSQL now stores the Phase-1 Argus decision audit
-schema; the APIs still serve liveness only. Run `make infra-up`,
+`compose.yaml` runs three development dependencies beside two
+application services. Decision API depends on PostgreSQL and checks readiness
+against its decision schema; Investigator API remains liveness-only. Run `make infra-up`,
 `make infra-ps`, and `make infra-check`; stop with `make infra-down`.
 
 ## State roles
@@ -44,6 +44,13 @@ desired. PostgreSQL reads the password only on first initialization of a new
 volume, so changing it later does not rotate the existing database password.
 These settings are for local development only.
 
+## Dependency failure behavior
+
+Decision API returns HTTP 503 on PostgreSQL connection failure and stays live
+but unready. Its engine uses the default pool with `pool_pre_ping` to discard
+stale connections after recovery. Migrations run explicitly before the API is
+ready. The container healthcheck targets `/health/ready`.
+
 ## Initial failure questions
 
 The Compose health checks establish dependency responsiveness, not application
@@ -56,8 +63,8 @@ depends on these services:
 | Redis | Derived values can be unavailable, missing, or stale. Define whether to recompute, bypass, or fail each operation; set freshness and retry limits. Redis loss must not silently become loss of authoritative truth. |
 | Kafka | Publishing/consuming can be delayed or unavailable. Define retry, replay, ordering, lag, and duplicate handling at each future boundary; assume at-least-once delivery rather than exactly-once consumers. Do not equate a healthy broker with completed downstream work. |
 
-The repository fails on PostgreSQL errors and leaves commit/rollback to its caller.
-HTTP failure policy, retry behavior, and idempotency await CP05.
+The Decision API service commits the audit and idempotency claim together.
+It does not retry writes inside a request.
 
 ## Persistence and resource limits
 
