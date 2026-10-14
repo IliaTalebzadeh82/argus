@@ -45,11 +45,13 @@ class SimulationRecord[T]:
 
 
 class SimulationKernel:
-    def __init__(self, config: SimulationConfig) -> None:
+    def __init__(
+        self, config: SimulationConfig, *, identity_scope: str | None = None
+    ) -> None:
         self.config = config
         self.random = SimulationRandom(config.seed)
         self.clock = SimulationClock(config.starts_at)
-        self.ids = IdentityAllocator()
+        self.ids = IdentityAllocator(identity_scope)
         self._sequence = 0
 
     @property

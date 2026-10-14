@@ -55,3 +55,8 @@ publication belong in adapters outside the kernel.
 
 The Phase 03 / Checkpoint 02 [legitimate world](synthetic-legitimate-world.md)
 consumes these primitives without changing the kernel contract.
+
+## Mixed composition
+
+The optional opaque identity scope used by [the mixed workload](synthetic-workload.md)
+leaves the default allocator and standalone scenarios unchanged.
