@@ -4,7 +4,6 @@ import json
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from uuid import UUID, uuid5
 
 from argus.domain.models import Device, Money, PaymentAttempt, Transaction, UserAccount
 from argus.events.envelope import EventEnvelope
@@ -14,16 +13,13 @@ from argus.events.fraud import (
     PaymentAttemptedPayload,
     PaymentFailedPayload,
     TransactionCompletedPayload,
-    validate_fraud_event,
 )
+from argus.simulation.events import scenario_identity, simulation_event
 from argus.simulation.kernel import (
     SimulationKernel,
     SimulationManifest,
     SimulationRecord,
 )
-
-_EVENT_NAMESPACE = UUID("06a87c42-06f4-50f2-a352-a608657596af")
-_PRODUCER = "argus-simulator-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,14 +116,7 @@ def run_legitimate_scenario(
 ) -> LegitimateScenarioResult:
     """Plan in user/payment order, then emit events in event-time order."""
     manifest = kernel.manifest
-    run_identity = json.dumps(
-        {
-            "kernel": json.loads(manifest.to_json()),
-            "legitimate": json.loads(config.to_json()),
-        },
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+    run_identity = scenario_identity(manifest, "legitimate", config.to_json())
     merchants = tuple(
         f"merchant-{number:06d}" for number in range(1, config.merchant_count + 1)
     )
@@ -144,20 +133,9 @@ def run_legitimate_scenario(
         payload: FraudPayload,
         at: datetime,
     ) -> None:
-        event = EventEnvelope[FraudPayload](
-            event_id=uuid5(
-                _EVENT_NAMESPACE, f"{run_identity}:{event_type}:{subject_id}"
-            ),
-            event_type=event_type,
-            event_version=1,
-            occurred_at=at,
-            produced_at=at,
-            producer=_PRODUCER,
-            trace_id=trace_id,
-            subject_id=subject_id,
-            payload=payload,
+        event = simulation_event(
+            run_identity, event_type, subject_id, trace_id, payload, at
         )
-        validate_fraud_event(event)
         schedule.append((event.occurred_at, len(schedule), event))
 
     for user_index in range(config.user_count):
